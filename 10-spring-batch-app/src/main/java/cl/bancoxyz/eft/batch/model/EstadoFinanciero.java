@@ -5,12 +5,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "batch_estados_financieros",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"cuentaId", "fecha", "transaccion"}))
+@Table(name = "estados_financieros_anuales",
+       uniqueConstraints = @UniqueConstraint(columnNames = {"cuenta_id", "fecha", "transaccion"}))
 public class EstadoFinanciero {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false) private String cuentaId;
+    @Column(name = "cuenta_id", nullable = false) private String cuentaId;
     @Column(nullable = false) private LocalDate fecha;
     @Column(nullable = false, length = 20) private String transaccion;
     @Column(nullable = false, precision = 19, scale = 2) private BigDecimal monto;

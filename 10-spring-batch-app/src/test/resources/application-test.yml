@@ -13,3 +13,6 @@ spring:
       initialize-schema: always
     job:
       enabled: false
+  sql:
+    init:
+      mode: never

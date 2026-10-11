@@ -5,11 +5,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "batch_movimientos", uniqueConstraints = @UniqueConstraint(columnNames = "sourceId"))
+@Table(name = "movimientos_financieros_diarios",
+       uniqueConstraints = @UniqueConstraint(columnNames = "source_id"))
 public class Movimiento {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false, unique = true) private String sourceId;
+    @Column(name = "source_id", nullable = false, unique = true) private String sourceId;
     @Column(nullable = false) private LocalDate fecha;
     @Column(nullable = false, precision = 19, scale = 2) private BigDecimal monto;
     @Column(nullable = false, length = 20) private String tipo;

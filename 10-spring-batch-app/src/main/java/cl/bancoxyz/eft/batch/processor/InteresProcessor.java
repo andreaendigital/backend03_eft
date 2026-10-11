@@ -24,10 +24,11 @@ public class InteresProcessor implements ItemProcessor<InteresInput, InteresTrim
             case "prestamo" -> new BigDecimal("0.0200");
             default -> new BigDecimal("0.0100");
         };
+        Integer edad = parseAge(input.getEdad());
         BigDecimal interes = saldo.multiply(rate).setScale(2, RoundingMode.HALF_UP);
         return new InteresTrimestral(input.getCuentaId().trim(),
                 input.getNombre() == null || input.getNombre().isBlank() ? "SIN NOMBRE" : input.getNombre().trim(),
-                saldo, interes, tipo);
+                saldo, edad, interes, tipo);
     }
 
     private String normalizeType(String value) {
@@ -43,5 +44,11 @@ public class InteresProcessor implements ItemProcessor<InteresInput, InteresTrim
         if (value == null || value.isBlank()) return BigDecimal.ZERO;
         try { return new BigDecimal(value.trim()); }
         catch (NumberFormatException exception) { throw new BatchDataException("Saldo inválido"); }
+    }
+
+    private Integer parseAge(String value) {
+        if (value == null || value.isBlank()) return null;
+        try { return Integer.valueOf(value.trim()); }
+        catch (NumberFormatException exception) { throw new BatchDataException("Edad inválida"); }
     }
 }
