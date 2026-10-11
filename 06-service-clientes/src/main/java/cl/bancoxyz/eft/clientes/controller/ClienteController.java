@@ -16,17 +16,30 @@ public class ClienteController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Cliente crear(@RequestBody CrearCliente request) {
-        return service.crear(request.rut(), request.nombres(), request.apellidos(),
-                request.email(), request.telefono());
+    public ClienteResponse crear(@RequestBody CrearCliente request) {
+        return ClienteResponse.from(service.crear(request.rut(), request.nombres(), request.apellidos(),
+                request.email(), request.telefono()));
     }
 
     @GetMapping
-    public List<Cliente> listar() { return service.listar(); }
+    public List<ClienteResponse> listar() {
+        return service.listar().stream().map(ClienteResponse::from).toList();
+    }
 
     @GetMapping("/{id}")
-    public Cliente buscar(@PathVariable UUID id) { return service.buscar(id); }
+    public ClienteResponse buscar(@PathVariable UUID id) {
+        return ClienteResponse.from(service.buscar(id));
+    }
 
     public record CrearCliente(String rut, String nombres, String apellidos,
                                String email, String telefono) { }
+
+    public record ClienteResponse(UUID id, String rut, String nombres, String apellidos,
+                                  String email, String telefono, java.time.LocalDateTime creadoEn) {
+        static ClienteResponse from(Cliente cliente) {
+            return new ClienteResponse(cliente.getId(), cliente.getRut(), cliente.getNombres(),
+                    cliente.getApellidos(), cliente.getEmail(), cliente.getTelefono(),
+                    cliente.getCreadoEn());
+        }
+    }
 }

@@ -17,17 +17,27 @@ public class CuentaController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Cuenta abrir(@RequestBody AperturaCuenta request) {
-        return service.abrir(request.clienteId(), request.numero(), request.tipo());
+    public CuentaResponse abrir(@RequestBody AperturaCuenta request) {
+        return CuentaResponse.from(service.abrir(request.clienteId(), request.numero(), request.tipo()));
     }
 
     @PostMapping("/{id}/cierre")
-    public Cuenta cerrar(@PathVariable UUID id) { return service.cerrar(id); }
+    public CuentaResponse cerrar(@PathVariable UUID id) { return CuentaResponse.from(service.cerrar(id)); }
 
     @GetMapping("/cliente/{clienteId}")
-    public List<Cuenta> listar(@PathVariable UUID clienteId) {
-        return service.listarPorCliente(clienteId);
+    public List<CuentaResponse> listar(@PathVariable UUID clienteId) {
+        return service.listarPorCliente(clienteId).stream().map(CuentaResponse::from).toList();
     }
 
     public record AperturaCuenta(UUID clienteId, String numero, TipoCuenta tipo) { }
+
+    public record CuentaResponse(UUID id, UUID clienteId, String numero, TipoCuenta tipo,
+                                 java.math.BigDecimal saldo, cl.bancoxyz.eft.cuentas.model.EstadoCuenta estado,
+                                 java.time.LocalDateTime creadaEn, java.time.LocalDateTime cerradaEn) {
+        static CuentaResponse from(Cuenta cuenta) {
+            return new CuentaResponse(cuenta.getId(), cuenta.getClienteId(), cuenta.getNumero(),
+                    cuenta.getTipo(), cuenta.getSaldo(), cuenta.getEstado(),
+                    cuenta.getCreadaEn(), cuenta.getCerradaEn());
+        }
+    }
 }

@@ -3,6 +3,7 @@ package cl.bancoxyz.eft.cuentas.service;
 import cl.bancoxyz.eft.cuentas.model.Cuenta;
 import cl.bancoxyz.eft.cuentas.model.TipoCuenta;
 import cl.bancoxyz.eft.cuentas.messaging.KafkaEventPublisher;
+import cl.bancoxyz.eft.cuentas.error.ResourceNotFoundException;
 import cl.bancoxyz.eft.cuentas.repository.CuentaRepository;
 import java.util.List;
 import java.util.UUID;
@@ -29,7 +30,7 @@ public class CuentaService {
     @Transactional
     public Cuenta cerrar(UUID id) {
         Cuenta cuenta = repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Cuenta no encontrada: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Cuenta no encontrada: " + id));
         cuenta.cerrar();
         Cuenta updated = repository.save(cuenta);
         events.accountChanged(updated);

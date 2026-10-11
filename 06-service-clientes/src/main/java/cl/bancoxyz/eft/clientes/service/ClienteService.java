@@ -2,6 +2,7 @@ package cl.bancoxyz.eft.clientes.service;
 
 import cl.bancoxyz.eft.clientes.model.Cliente;
 import cl.bancoxyz.eft.clientes.messaging.KafkaEventPublisher;
+import cl.bancoxyz.eft.clientes.error.ResourceNotFoundException;
 import cl.bancoxyz.eft.clientes.repository.ClienteRepository;
 import java.util.List;
 import java.util.UUID;
@@ -31,6 +32,6 @@ public class ClienteService {
     @Transactional(readOnly = true)
     public Cliente buscar(UUID id) {
         return repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado: " + id));
     }
 }

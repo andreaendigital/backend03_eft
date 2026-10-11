@@ -17,11 +17,21 @@ public class PagoController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Pago crear(@RequestBody CrearPago request) {
-        return service.process(request.cuentaOrigenId(), request.cuentaDestinoId(),
-                request.monto(), request.tipo());
+    public PagoResponse crear(@RequestBody CrearPago request) {
+        return PagoResponse.from(service.process(request.cuentaOrigenId(), request.cuentaDestinoId(),
+                request.monto(), request.tipo()));
     }
 
     public record CrearPago(UUID cuentaOrigenId, UUID cuentaDestinoId,
                             BigDecimal monto, TipoPago tipo) { }
+
+    public record PagoResponse(UUID id, UUID cuentaOrigenId, UUID cuentaDestinoId,
+                               BigDecimal monto, TipoPago tipo,
+                               cl.bancoxyz.eft.pagos.model.EstadoPago estado,
+                               java.time.LocalDateTime creadoEn) {
+        static PagoResponse from(Pago pago) {
+            return new PagoResponse(pago.getId(), pago.getCuentaOrigenId(), pago.getCuentaDestinoId(),
+                    pago.getMonto(), pago.getTipo(), pago.getEstado(), pago.getCreadoEn());
+        }
+    }
 }
