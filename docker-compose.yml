@@ -1,0 +1,220 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: banco_xyz_batch
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks: [banco-network]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -padmin"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: eft
+      POSTGRES_USER: eft
+      POSTGRES_PASSWORD: eft
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [banco-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eft -d eft"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.7.7
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks: [banco-network]
+
+  kafka:
+    image: confluentinc/cp-kafka:7.7.7
+    depends_on:
+      zookeeper:
+        condition: service_started
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+    networks: [banco-network]
+    healthcheck:
+      test: ["CMD-SHELL", "cub kafka-ready -b kafka:29092 1 20"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  config-server:
+    build:
+      context: ./01-config-server
+      dockerfile: Dockerfile
+    ports: ["8888:8888"]
+    networks: [banco-network]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  eureka-server:
+    build:
+      context: ./02-eureka-server
+      dockerfile: Dockerfile
+    ports: ["8761:8761"]
+    networks: [banco-network]
+    depends_on:
+      config-server:
+        condition: service_healthy
+
+  auth-server:
+    build:
+      context: ./03-auth-server
+      dockerfile: Dockerfile
+    ports: ["9000:9000"]
+    networks: [banco-network]
+    depends_on:
+      config-server:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+
+  service-cuentas:
+    build:
+      context: ./04-service-cuentas
+      dockerfile: Dockerfile
+    ports: ["8081:8081"]
+    networks: [banco-network]
+    depends_on:
+      config-server: {condition: service_healthy}
+      eureka-server: {condition: service_started}
+      postgres: {condition: service_healthy}
+      kafka: {condition: service_healthy}
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      DB_URL: jdbc:postgresql://postgres:5432/eft
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      AUTH_JWK_SET_URI: http://auth-server:9000/.well-known/jwks.json
+
+  service-pagos:
+    build:
+      context: ./05-service-pagos
+      dockerfile: Dockerfile
+    ports: ["8082:8082"]
+    networks: [banco-network]
+    depends_on:
+      config-server: {condition: service_healthy}
+      eureka-server: {condition: service_started}
+      postgres: {condition: service_healthy}
+      kafka: {condition: service_healthy}
+      service-cuentas: {condition: service_started}
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      DB_URL: jdbc:postgresql://postgres:5432/eft
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      CUENTAS_SERVICE_URL: http://service-cuentas:8081
+      AUTH_JWK_SET_URI: http://auth-server:9000/.well-known/jwks.json
+
+  service-clientes:
+    build:
+      context: ./06-service-clientes
+      dockerfile: Dockerfile
+    ports: ["8083:8083"]
+    networks: [banco-network]
+    depends_on:
+      config-server: {condition: service_healthy}
+      eureka-server: {condition: service_started}
+      postgres: {condition: service_healthy}
+      kafka: {condition: service_healthy}
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      DB_URL: jdbc:postgresql://postgres:5432/eft
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      AUTH_JWK_SET_URI: http://auth-server:9000/.well-known/jwks.json
+
+  bff-web:
+    build:
+      context: ./07-bff-web
+      dockerfile: Dockerfile
+    ports: ["8087:8087"]
+    networks: [banco-network]
+    depends_on:
+      config-server: {condition: service_healthy}
+      eureka-server: {condition: service_started}
+      auth-server: {condition: service_started}
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      AUTH_JWK_SET_URI: http://auth-server:9000/.well-known/jwks.json
+      AUTH_ISSUER_URI: http://auth-server:9000
+
+  bff-movil:
+    build:
+      context: ./08-bff-movil
+      dockerfile: Dockerfile
+    ports: ["8088:8088"]
+    networks: [banco-network]
+    depends_on:
+      config-server: {condition: service_healthy}
+      eureka-server: {condition: service_started}
+      auth-server: {condition: service_started}
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      AUTH_JWK_SET_URI: http://auth-server:9000/.well-known/jwks.json
+
+  bff-cajeros:
+    build:
+      context: ./09-bff-cajeros
+      dockerfile: Dockerfile
+    ports: ["8089:8089"]
+    networks: [banco-network]
+    depends_on:
+      config-server: {condition: service_healthy}
+      eureka-server: {condition: service_started}
+      auth-server: {condition: service_started}
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      AUTH_JWK_SET_URI: http://auth-server:9000/.well-known/jwks.json
+
+  spring-batch-app:
+    build:
+      context: ./10-spring-batch-app
+      dockerfile: Dockerfile
+    ports: ["8090:8090"]
+    networks: [banco-network]
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/banco_xyz_batch?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      DB_USERNAME: root
+      DB_PASSWORD: admin
+
+networks:
+  banco-network:
+    name: banco-network
+    driver: bridge
+
+volumes:
+  mysql-data:
+  postgres-data:
