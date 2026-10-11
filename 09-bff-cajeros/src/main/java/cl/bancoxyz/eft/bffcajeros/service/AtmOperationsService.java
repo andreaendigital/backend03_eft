@@ -27,7 +27,9 @@ public class AtmOperationsService {
     @CircuitBreaker(name = "cuentas", fallbackMethod = "saldoFallback")
     public Mono<Map<String, Object>> saldo(UUID cuentaId) {
         return client.get().uri(cuentasUrl + "/api/v1/cuentas/{id}", cuentaId)
-                .retrieve().bodyToMono(Map.class).map(value -> (Map<String, Object>) value);
+                .retrieve().bodyToMono(Map.class)
+                .map(value -> Map.of("cuentaId", value.get("id"),
+                        "saldo", value.get("saldo"), "estado", value.get("estado")));
     }
 
     @CircuitBreaker(name = "pagos", fallbackMethod = "operacionFallback")
@@ -45,7 +47,9 @@ public class AtmOperationsService {
                 "monto", monto, "tipo", tipo);
         return client.post().uri(pagosUrl + "/api/v1/pagos")
                 .contentType(MediaType.APPLICATION_JSON).bodyValue(request)
-                .retrieve().bodyToMono(Map.class).map(value -> (Map<String, Object>) value);
+                .retrieve().bodyToMono(Map.class)
+                .map(value -> Map.of("pagoId", value.get("id"),
+                        "monto", value.get("monto"), "estado", value.get("estado")));
     }
 
     public Mono<Map<String, Object>> saldoFallback(UUID cuentaId, Throwable cause) {

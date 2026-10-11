@@ -3,7 +3,7 @@ spring:
     name: spring-batch-app
 
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/banco_xyz_batch?useSSL=false&serverTimezone=UTC}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/banco_xyz_batch?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:admin}
     driver-class-name: com.mysql.cj.jdbc.Driver
