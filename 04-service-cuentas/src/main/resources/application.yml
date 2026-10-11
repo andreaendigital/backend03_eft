@@ -38,6 +38,16 @@ resilience4j:
       clientes:
         sliding-window-size: 10
         failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+  timelimiter:
+    instances:
+      clientes:
+        timeout-duration: 2s
+  retry:
+    instances:
+      clientes:
+        max-attempts: 3
+        wait-duration: 200ms
 
 management:
   endpoints:

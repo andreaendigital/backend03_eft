@@ -31,6 +31,16 @@ resilience4j:
       perfiles:
         sliding-window-size: 10
         failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+  timelimiter:
+    instances:
+      cuentas:
+        timeout-duration: 2s
+  retry:
+    instances:
+      cuentas:
+        max-attempts: 3
+        wait-duration: 200ms
 management:
   endpoints:
     web:
