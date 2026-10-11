@@ -1,0 +1,9 @@
+spring:
+  config:
+    activate:
+      on-profile: default
+
+info:
+  application:
+    name: eft
+    description: Centralized configuration for EFT services
