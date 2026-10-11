@@ -15,7 +15,7 @@ public class MobileSummaryService {
     private final String cuentasUrl;
 
     public MobileSummaryService(WebClient client,
-                                @Value("${services.cuentas-url:http://localhost:8081}") String cuentasUrl) {
+                                @Value("${services.cuentas-url:lb://SERVICE-CUENTAS}") String cuentasUrl) {
         this.client = client;
         this.cuentasUrl = cuentasUrl;
     }

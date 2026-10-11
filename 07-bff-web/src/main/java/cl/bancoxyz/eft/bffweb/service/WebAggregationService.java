@@ -16,8 +16,8 @@ public class WebAggregationService {
     private final String clientesUrl;
 
     public WebAggregationService(WebClient client,
-                                 @Value("${services.cuentas-url:http://localhost:8081}") String cuentasUrl,
-                                 @Value("${services.clientes-url:http://localhost:8083}") String clientesUrl) {
+                                 @Value("${services.cuentas-url:lb://SERVICE-CUENTAS}") String cuentasUrl,
+                                 @Value("${services.clientes-url:lb://SERVICE-CLIENTES}") String clientesUrl) {
         this.client = client;
         this.cuentasUrl = cuentasUrl;
         this.clientesUrl = clientesUrl;

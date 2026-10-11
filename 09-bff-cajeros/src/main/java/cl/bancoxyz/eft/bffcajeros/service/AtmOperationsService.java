@@ -17,8 +17,8 @@ public class AtmOperationsService {
     private final String pagosUrl;
 
     public AtmOperationsService(WebClient client,
-                                @Value("${services.cuentas-url:http://localhost:8081}") String cuentasUrl,
-                                @Value("${services.pagos-url:http://localhost:8082}") String pagosUrl) {
+                                @Value("${services.cuentas-url:lb://SERVICE-CUENTAS}") String cuentasUrl,
+                                @Value("${services.pagos-url:lb://SERVICE-PAGOS}") String pagosUrl) {
         this.client = client;
         this.cuentasUrl = cuentasUrl;
         this.pagosUrl = pagosUrl;
