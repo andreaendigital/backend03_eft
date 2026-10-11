@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: bff-cajeros
+  config:
+    import: optional:configserver:http://localhost:8888
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/.well-known/jwks.json}
+          audiences: ${AUTH_AUDIENCE:atm}
+server:
+  port: ${SERVER_PORT:8089}
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+resilience4j:
+  circuitbreaker:
+    instances:
+      cuentas:
+        sliding-window-size: 5
+        failure-rate-threshold: 25
+      pagos:
+        sliding-window-size: 5
+        failure-rate-threshold: 25
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
