@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: bff-web
+  config:
+    import: optional:configserver:http://localhost:8888
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/.well-known/jwks.json}
+      client:
+        registration:
+          eft:
+            client-id: ${OAUTH_CLIENT_ID:eft-client}
+            client-secret: ${OAUTH_CLIENT_SECRET:changeit}
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope: openid,profile
+        provider:
+          eft:
+            issuer-uri: ${AUTH_ISSUER_URI:http://localhost:9000}
+server:
+  port: ${SERVER_PORT:8087}
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+resilience4j:
+  circuitbreaker:
+    instances:
+      cuentas:
+        sliding-window-size: 10
+      clientes:
+        sliding-window-size: 10
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
