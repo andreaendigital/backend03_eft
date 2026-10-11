@@ -1,6 +1,7 @@
 package cl.bancoxyz.eft.clientes.service;
 
 import cl.bancoxyz.eft.clientes.model.Cliente;
+import cl.bancoxyz.eft.clientes.messaging.KafkaEventPublisher;
 import cl.bancoxyz.eft.clientes.repository.ClienteRepository;
 import java.util.List;
 import java.util.UUID;
@@ -10,12 +11,18 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ClienteService {
     private final ClienteRepository repository;
+    private final KafkaEventPublisher events;
 
-    public ClienteService(ClienteRepository repository) { this.repository = repository; }
+    public ClienteService(ClienteRepository repository, KafkaEventPublisher events) {
+        this.repository = repository;
+        this.events = events;
+    }
 
     @Transactional
     public Cliente crear(String rut, String nombres, String apellidos, String email, String telefono) {
-        return repository.save(new Cliente(rut, nombres, apellidos, email, telefono));
+        Cliente cliente = repository.save(new Cliente(rut, nombres, apellidos, email, telefono));
+        events.accountChanged(cliente);
+        return cliente;
     }
 
     @Transactional(readOnly = true)
