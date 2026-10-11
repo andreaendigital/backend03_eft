@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: bff-movil
+  config:
+    import: optional:configserver:http://localhost:8888
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/.well-known/jwks.json}
+server:
+  port: ${SERVER_PORT:8088}
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+resilience4j:
+  circuitbreaker:
+    instances:
+      cuentas:
+        sliding-window-size: 10
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
