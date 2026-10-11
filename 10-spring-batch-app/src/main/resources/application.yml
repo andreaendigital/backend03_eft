@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: spring-batch-app
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/banco_xyz_batch}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQLDialect
+    open-in-view: false
+
+  batch:
+    jdbc:
+      initialize-schema: always
+    job:
+      enabled: true
+
+  sql:
+    init:
+      mode: always
+
+logging:
+  level:
+    org.springframework.batch: INFO
