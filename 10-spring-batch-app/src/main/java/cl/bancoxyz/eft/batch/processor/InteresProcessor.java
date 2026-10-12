@@ -1,6 +1,6 @@
 package cl.bancoxyz.eft.batch.processor;
 
-import cl.bancoxyz.eft.batch.model.InteresTrimestral;
+import cl.bancoxyz.eft.batch.model.pagos.InteresTrimestral;
 import cl.bancoxyz.eft.batch.model.input.InteresInput;
 import cl.bancoxyz.eft.batch.support.BatchDataException;
 import java.math.BigDecimal;

@@ -1,17 +1,28 @@
 package cl.bancoxyz.eft.batch.writer;
 
-import cl.bancoxyz.eft.batch.model.InteresTrimestral;
-import cl.bancoxyz.eft.batch.repository.InteresRepository;
+import cl.bancoxyz.eft.batch.model.pagos.InteresTrimestral;
+import cl.bancoxyz.eft.batch.repository.pagos.InteresRepository;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
 
+/**
+ * Escribe intereses trimestrales en banco_xyz_pagos.
+ * Idempotente: omite registros cuyo cuenta_id ya existe.
+ */
 @Component
 public class IdempotentInteresWriter implements ItemWriter<InteresTrimestral> {
+
     private final InteresRepository repository;
-    public IdempotentInteresWriter(InteresRepository repository) { this.repository = repository; }
-    @Override public void write(Chunk<? extends InteresTrimestral> chunk) {
-        chunk.getItems().stream().filter(item -> !repository.existsByCuentaId(item.getCuentaId()))
+
+    public IdempotentInteresWriter(InteresRepository repository) {
+        this.repository = repository;
+    }
+
+    @Override
+    public void write(Chunk<? extends InteresTrimestral> chunk) {
+        chunk.getItems().stream()
+                .filter(item -> !repository.existsByCuentaId(item.getCuentaId()))
                 .forEach(repository::save);
     }
 }

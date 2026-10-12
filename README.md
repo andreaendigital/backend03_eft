@@ -46,8 +46,8 @@ flowchart TB
         CLIENTES["06-service-clientes<br/>Puerto 8083"]
     end
 
-    BATCH["10-spring-batch-app<br/>Tres Jobs<br/>Puerto 8090"]
-    MYSQL_BATCH[(MySQL<br/>banco_xyz_batch)]
+    BATCH["10-spring-batch-app<br/>ETL Jobs<br/>Puerto 8090"]
+    MYSQL_BATCH[(MySQL<br/>banco_xyz_batch<br/>metadatos Batch)]
     MYSQL_CUENTAS[(MySQL<br/>banco_xyz_cuentas)]
     MYSQL_PAGOS[(MySQL<br/>banco_xyz_pagos)]
     MYSQL_CLIENTES[(MySQL<br/>banco_xyz_clientes)]
@@ -73,6 +73,8 @@ flowchart TB
     PAGOS --> MYSQL_PAGOS
     CLIENTES --> MYSQL_CLIENTES
     Core <--> KAFKA
+    BATCH -->|movimientos + estados| MYSQL_CUENTAS
+    BATCH -->|intereses trimestrales| MYSQL_PAGOS
     BATCH --> MYSQL_BATCH
     BATCH -. eventos/operación futura .-> KAFKA
 ```
@@ -94,7 +96,7 @@ duplicados y usan reintentos acotados con tópicos DLQ.
 | `07-bff-web` | 8087 | Agregación para navegador y payloads completos. |
 | `08-bff-movil` | 8088 | Payloads ligeros para aplicaciones móviles. |
 | `09-bff-cajeros` | 8089 | Operaciones ATM de baja latencia y scope `atm`. |
-| `10-spring-batch-app` | 8090 | Tres Jobs para migración de CSV legacy hacia MySQL. |
+| `10-spring-batch-app` | 8090 | ETL: tres Jobs que migran CSV legacy hacia las bases de los microservicios core. |
 
 Cada proyecto es independiente. No se comparte una base de datos entre
 microservicios core: la comunicación entre dominios se realiza mediante APIs y
@@ -112,18 +114,16 @@ eventos.
 
 ### 4.2 Inicializar MySQL
 
-Todos los servicios (core + batch) usan un único servidor MySQL con cuatro bases de datos lógicas independientes. Cada microservicio accede exclusivamente a su propia base; no hay accesos cruzados directos entre esquemas.
+Todos los servicios (core + batch) usan un único servidor MySQL. El Batch actúa como ETL y escribe los datos migrados directamente en las bases de los microservicios core:
 
-El script `docker/mysql/init/01-create-core-databases.sql` crea automáticamente los cuatro esquemas al levantar el contenedor:
+| Base de datos | Quién escribe | Quién lee |
+|---|---|---|
+| `banco_xyz_cuentas` | Spring Batch (movimientos diarios + estados anuales) | service-cuentas |
+| `banco_xyz_pagos` | Spring Batch (intereses trimestrales) | service-pagos |
+| `banco_xyz_clientes` | service-clientes (vía API) | service-clientes |
+| `banco_xyz_batch` | Spring Batch (metadatos de ejecución) | — |
 
-```sql
-CREATE DATABASE IF NOT EXISTS banco_xyz_cuentas  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE IF NOT EXISTS banco_xyz_pagos     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE IF NOT EXISTS banco_xyz_clientes  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE IF NOT EXISTS banco_xyz_batch     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-Para desarrollo local sin Docker, crear las bases manualmente:
+El script `docker/mysql/init/01-create-core-databases.sql` crea automáticamente los cuatro esquemas al levantar el contenedor. Para desarrollo local sin Docker, crearlos manualmente:
 
 ```sql
 CREATE DATABASE IF NOT EXISTS banco_xyz_cuentas;
@@ -132,16 +132,15 @@ CREATE DATABASE IF NOT EXISTS banco_xyz_clientes;
 CREATE DATABASE IF NOT EXISTS banco_xyz_batch;
 ```
 
-El archivo [schema.sql](./10-spring-batch-app/src/main/resources/schema.sql)
-crea las tablas de negocio del Batch. Spring Batch crea sus tablas de metadatos porque
-está configurado con `spring.batch.jdbc.initialize-schema: always`. Los core services
-usan `spring.jpa.hibernate.ddl-auto: update`, por lo que JPA crea/actualiza sus tablas al arrancar.
+El Batch usa `spring.jpa.hibernate.ddl-auto: update` en cada DataSource, por lo que crea las tablas `movimientos_financieros_diarios`, `estados_financieros_anuales` e `intereses_trimestrales` al arrancar. Spring Batch crea sus tablas de metadatos en `banco_xyz_batch` con `spring.batch.jdbc.initialize-schema: always`.
 
 Credenciales por defecto (sobrescribibles con variables de entorno):
 
 | Variable | Valor por defecto |
 |---|---|
-| `DB_URL` | `jdbc:mysql://localhost:3306/<base>?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true` |
+| `DB_BATCH_URL` | `jdbc:mysql://localhost:3306/banco_xyz_batch?...` |
+| `DB_CUENTAS_URL` | `jdbc:mysql://localhost:3306/banco_xyz_cuentas?...` |
+| `DB_PAGOS_URL` | `jdbc:mysql://localhost:3306/banco_xyz_pagos?...` |
 | `DB_USERNAME` | `root` |
 | `DB_PASSWORD` | `admin` |
 

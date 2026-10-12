@@ -2,9 +2,9 @@ package cl.bancoxyz.eft.batch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import cl.bancoxyz.eft.batch.repository.EstadoFinancieroRepository;
-import cl.bancoxyz.eft.batch.repository.InteresRepository;
-import cl.bancoxyz.eft.batch.repository.MovimientoRepository;
+import cl.bancoxyz.eft.batch.repository.cuentas.EstadoFinancieroRepository;
+import cl.bancoxyz.eft.batch.repository.pagos.InteresRepository;
+import cl.bancoxyz.eft.batch.repository.cuentas.MovimientoRepository;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.Job;

@@ -1,6 +1,6 @@
 package cl.bancoxyz.eft.batch.processor;
 
-import cl.bancoxyz.eft.batch.model.Movimiento;
+import cl.bancoxyz.eft.batch.model.cuentas.Movimiento;
 import cl.bancoxyz.eft.batch.model.input.MovimientoInput;
 import cl.bancoxyz.eft.batch.support.BatchDataException;
 import cl.bancoxyz.eft.batch.support.DateNormalizer;

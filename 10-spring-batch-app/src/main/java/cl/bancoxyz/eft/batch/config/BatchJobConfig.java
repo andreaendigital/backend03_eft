@@ -1,12 +1,13 @@
 package cl.bancoxyz.eft.batch.config;
 
 import cl.bancoxyz.eft.batch.listener.RejectSkipListener;
-import cl.bancoxyz.eft.batch.model.*;
+import cl.bancoxyz.eft.batch.model.cuentas.Movimiento;
+import cl.bancoxyz.eft.batch.model.cuentas.EstadoFinanciero;
+import cl.bancoxyz.eft.batch.model.pagos.InteresTrimestral;
 import cl.bancoxyz.eft.batch.model.input.*;
 import cl.bancoxyz.eft.batch.processor.*;
 import cl.bancoxyz.eft.batch.writer.*;
 import cl.bancoxyz.eft.batch.support.BatchDataException;
-import java.util.Map;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;

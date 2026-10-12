@@ -1,6 +1,6 @@
 package cl.bancoxyz.eft.batch.processor;
 
-import cl.bancoxyz.eft.batch.model.EstadoFinanciero;
+import cl.bancoxyz.eft.batch.model.cuentas.EstadoFinanciero;
 import cl.bancoxyz.eft.batch.model.input.EstadoFinancieroInput;
 import cl.bancoxyz.eft.batch.support.BatchDataException;
 import cl.bancoxyz.eft.batch.support.DateNormalizer;
