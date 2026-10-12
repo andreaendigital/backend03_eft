@@ -26,9 +26,11 @@ public class InteresProcessor implements ItemProcessor<InteresInput, InteresTrim
         };
         Integer edad = parseAge(input.getEdad());
         BigDecimal interes = saldo.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+        // Interés mensual equivalente: el trimestral dividido en 3 meses
+        BigDecimal interesMensual = interes.divide(BigDecimal.valueOf(3), 2, RoundingMode.HALF_UP);
         return new InteresTrimestral(input.getCuentaId().trim(),
                 input.getNombre() == null || input.getNombre().isBlank() ? "SIN NOMBRE" : input.getNombre().trim(),
-                saldo, edad, interes, tipo);
+                saldo, edad, interes, interesMensual, tipo);
     }
 
     private String normalizeType(String value) {

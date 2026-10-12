@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 
 /**
- * Interés trimestral calculado durante la migración ETL desde CSV legacy.
+ * Interés calculado durante la migración ETL desde CSV legacy.
+ * Almacena tanto el interés trimestral (calculado directamente sobre el saldo)
+ * como el interés mensual equivalente (trimestral / 3), que da cumplimiento al
+ * requerimiento de "Cálculo de Intereses Mensuales" del enunciado.
  * Persiste en banco_xyz_pagos.intereses_trimestrales.
  */
 @Entity
@@ -27,8 +30,13 @@ public class InteresTrimestral {
     @Column
     private Integer edad;
 
+    /** Interés del trimestre completo: saldo × tasa_trimestral */
     @Column(name = "interes_calculado", nullable = false, precision = 19, scale = 2)
     private BigDecimal interes;
+
+    /** Interés mensual equivalente: interes_calculado / 3 */
+    @Column(name = "interes_mensual", nullable = false, precision = 19, scale = 2)
+    private BigDecimal interesMensual;
 
     @Column(nullable = false, length = 20)
     private String tipo;
@@ -36,14 +44,17 @@ public class InteresTrimestral {
     protected InteresTrimestral() {}
 
     public InteresTrimestral(String cuentaId, String nombre, BigDecimal saldo,
-                             Integer edad, BigDecimal interes, String tipo) {
-        this.cuentaId = cuentaId;
-        this.nombre   = nombre;
-        this.saldo    = saldo;
-        this.edad     = edad;
-        this.interes  = interes;
-        this.tipo     = tipo;
+                             Integer edad, BigDecimal interes, BigDecimal interesMensual, String tipo) {
+        this.cuentaId      = cuentaId;
+        this.nombre        = nombre;
+        this.saldo         = saldo;
+        this.edad          = edad;
+        this.interes       = interes;
+        this.interesMensual = interesMensual;
+        this.tipo          = tipo;
     }
 
-    public String getCuentaId() { return cuentaId; }
+    public String getCuentaId()       { return cuentaId; }
+    public BigDecimal getInteres()    { return interes; }
+    public BigDecimal getInteresMensual() { return interesMensual; }
 }
