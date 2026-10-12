@@ -32,7 +32,19 @@ spring:
     jdbc:
       initialize-schema: always
     job:
-      enabled: true
+      # Los jobs son lanzados por JobScheduler, no al arrancar la app
+      enabled: false
+
+# ── Política de reintento del job completo ────────────────────────────────────
+batch:
+  retry:
+    max-attempts: 3          # reintentos máximos ante fallo crítico
+    initial-delay-ms: 5000   # 5 s entre el 1er y 2do intento; se duplica (backoff exp.)
+  schedule:
+    # Cron expressions sobrescribibles por variable de entorno
+    transacciones: "0 0 1 * * *"   # cada día 01:00 AM
+    intereses:     "0 0 2 1 * *"   # primer día de cada mes 02:00 AM
+    estados:       "0 0 3 1 1 *"   # 1 de enero 03:00 AM
 
   sql:
     init:
