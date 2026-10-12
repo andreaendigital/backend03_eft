@@ -35,10 +35,38 @@ propio `pom.xml`, código fuente, configuración y Dockerfile. La solución sepa
 | Job con Steps: leer, procesar, escribir | `FlatFileItemReader` → `ItemProcessor` → `ItemWriter` idempotente por cada Job |
 | Manejo de excepciones y reintentos | `faultTolerant().skipLimit(2000).skip(BatchDataException.class)` + `RejectSkipListener` |
 | Grandes volúmenes — optimización | Chunk size 50; procesamiento por lotes con transacciones delimitadas |
-| Políticas de finalización y reejecución | `spring.batch.job.enabled: true`; metadatos en `banco_xyz_batch` permiten relanzar por `JobParameters` únicos |
+| Políticas de finalización y reejecución automática | `JobScheduler` con `@Scheduled`; reintento del job completo con backoff exponencial (ver abajo) |
 | Integridad durante migración | Writers idempotentes con restricciones `UNIQUE` en tablas destino |
 | Resultados equivalentes al legacy | Normalización de 4 formatos de fecha, validación de montos, normalización de tipos |
+| Cálculo de intereses mensuales | `InteresProcessor` calcula `interes_mensual = interes_trimestral / 3` (HALF_UP); ambos valores persisten en `intereses_trimestrales` |
 | **Destino ETL** | Los datos migrados se escriben en `banco_xyz_cuentas` (movimientos + estados) y `banco_xyz_pagos` (intereses), usando múltiples DataSources |
+
+#### Scheduler y política de reintento
+
+Los tres Jobs se ejecutan de forma programada mediante `JobScheduler` (`@EnableScheduling`):
+
+| Job | Cron por defecto | Variable de entorno |
+|---|---|---|
+| `transaccionesDiariasJob` | `0 0 1 * * *` — cada día 01:00 AM | `BATCH_SCHEDULE_TRANSACCIONES` |
+| `interesesTrimestralesJob` | `0 0 2 1 * *` — 1er día de cada mes 02:00 AM | `BATCH_SCHEDULE_INTERESES` |
+| `estadosFinancierosAnualesJob` | `0 0 3 1 1 *` — 1 de enero 03:00 AM | `BATCH_SCHEDULE_ESTADOS` |
+
+Si un Job termina en estado `FAILED` o no puede lanzarse (p. ej. base de datos no disponible), el scheduler reintenta el **job completo** con backoff exponencial:
+
+```
+Intento 1  →  falla  →  espera  5 s
+Intento 2  →  falla  →  espera 10 s
+Intento 3  →  falla  →  log ERROR y abandona
+```
+
+Configurable en `application.yml` o por variables de entorno:
+
+```yaml
+batch:
+  retry:
+    max-attempts: 3          # reintentos máximos
+    initial-delay-ms: 5000   # delay inicial en ms (se duplica cada intento)
+```
 
 **Fuente de datos:** archivos CSV del repositorio `KariVillagran/fin_legacy_data`, incluidos en `src/main/resources/data/`.
 
