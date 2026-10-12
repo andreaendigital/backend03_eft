@@ -8,24 +8,10 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     networks: [banco-network]
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -padmin"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: eft
-      POSTGRES_USER: eft
-      POSTGRES_PASSWORD: eft
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    networks: [banco-network]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U eft -d eft"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -103,12 +89,14 @@ services:
     depends_on:
       config-server: {condition: service_healthy}
       eureka-server: {condition: service_started}
-      postgres: {condition: service_healthy}
+      mysql: {condition: service_healthy}
       kafka: {condition: service_healthy}
     environment:
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       EUREKA_URI: http://eureka-server:8761/eureka/
-      DB_URL: jdbc:postgresql://postgres:5432/eft
+      DB_URL: jdbc:mysql://mysql:3306/banco_xyz_cuentas?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      DB_USERNAME: root
+      DB_PASSWORD: admin
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       AUTH_JWK_SET_URI: http://auth-server:9000/.well-known/jwks.json
 
@@ -121,13 +109,15 @@ services:
     depends_on:
       config-server: {condition: service_healthy}
       eureka-server: {condition: service_started}
-      postgres: {condition: service_healthy}
+      mysql: {condition: service_healthy}
       kafka: {condition: service_healthy}
       service-cuentas: {condition: service_started}
     environment:
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       EUREKA_URI: http://eureka-server:8761/eureka/
-      DB_URL: jdbc:postgresql://postgres:5432/eft
+      DB_URL: jdbc:mysql://mysql:3306/banco_xyz_pagos?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      DB_USERNAME: root
+      DB_PASSWORD: admin
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       CUENTAS_SERVICE_URL: http://service-cuentas:8081
       AUTH_JWK_SET_URI: http://auth-server:9000/.well-known/jwks.json
@@ -141,12 +131,14 @@ services:
     depends_on:
       config-server: {condition: service_healthy}
       eureka-server: {condition: service_started}
-      postgres: {condition: service_healthy}
+      mysql: {condition: service_healthy}
       kafka: {condition: service_healthy}
     environment:
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       EUREKA_URI: http://eureka-server:8761/eureka/
-      DB_URL: jdbc:postgresql://postgres:5432/eft
+      DB_URL: jdbc:mysql://mysql:3306/banco_xyz_clientes?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      DB_USERNAME: root
+      DB_PASSWORD: admin
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       AUTH_JWK_SET_URI: http://auth-server:9000/.well-known/jwks.json
 
@@ -217,4 +209,3 @@ networks:
 
 volumes:
   mysql-data:
-  postgres-data:
