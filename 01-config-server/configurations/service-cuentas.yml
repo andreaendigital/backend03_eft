@@ -1,5 +1,7 @@
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/eft}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/banco_xyz_cuentas?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:admin}
   jpa:
     open-in-view: false

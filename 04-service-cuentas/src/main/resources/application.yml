@@ -4,7 +4,9 @@ spring:
   config:
     import: optional:configserver:http://localhost:8888
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/eft}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/banco_xyz_cuentas?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:admin}
     username: ${DB_USERNAME:eft}
     password: ${DB_PASSWORD:eft}
   jpa:
