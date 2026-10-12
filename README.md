@@ -47,8 +47,10 @@ flowchart TB
     end
 
     BATCH["10-spring-batch-app<br/>Tres Jobs<br/>Puerto 8090"]
-    MYSQL[(MySQL<br/>banco_xyz_batch)]
-    PG[(PostgreSQL<br/>eft)]
+    MYSQL_BATCH[(MySQL<br/>banco_xyz_batch)]
+    MYSQL_CUENTAS[(MySQL<br/>banco_xyz_cuentas)]
+    MYSQL_PAGOS[(MySQL<br/>banco_xyz_pagos)]
+    MYSQL_CLIENTES[(MySQL<br/>banco_xyz_clientes)]
     KAFKA{{Kafka<br/>eventos y DLQ}}
 
     WEB -->|JWT + payload completo| CUENTAS
@@ -67,9 +69,11 @@ flowchart TB
     AUTH -->|JWK/JWT| Core
     AUTH -->|JWK/JWT| Canales
 
-    Core --> PG
+    CUENTAS --> MYSQL_CUENTAS
+    PAGOS --> MYSQL_PAGOS
+    CLIENTES --> MYSQL_CLIENTES
     Core <--> KAFKA
-    BATCH --> MYSQL
+    BATCH --> MYSQL_BATCH
     BATCH -. eventos/operación futura .-> KAFKA
 ```
 
@@ -102,32 +106,44 @@ eventos.
 
 - JDK 17.
 - Maven 3.9+.
-- MySQL 8.x para Batch.
-- PostgreSQL 16+ para los microservicios core.
+- MySQL 8.x (un único servidor para todos los servicios; los esquemas se crean automáticamente).
 - Kafka y Zookeeper para mensajería.
 - Postman o `curl`.
 
-### 4.2 Inicializar MySQL para Batch
+### 4.2 Inicializar MySQL
 
-Crear la base y el usuario de desarrollo:
+Todos los servicios (core + batch) usan un único servidor MySQL con cuatro bases de datos lógicas independientes. Cada microservicio accede exclusivamente a su propia base; no hay accesos cruzados directos entre esquemas.
+
+El script `docker/mysql/init/01-create-core-databases.sql` crea automáticamente los cuatro esquemas al levantar el contenedor:
 
 ```sql
+CREATE DATABASE IF NOT EXISTS banco_xyz_cuentas  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS banco_xyz_pagos     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS banco_xyz_clientes  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS banco_xyz_batch     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Para desarrollo local sin Docker, crear las bases manualmente:
+
+```sql
+CREATE DATABASE IF NOT EXISTS banco_xyz_cuentas;
+CREATE DATABASE IF NOT EXISTS banco_xyz_pagos;
+CREATE DATABASE IF NOT EXISTS banco_xyz_clientes;
 CREATE DATABASE IF NOT EXISTS banco_xyz_batch;
 ```
 
 El archivo [schema.sql](./10-spring-batch-app/src/main/resources/schema.sql)
-crea las tablas de negocio. Spring Batch crea sus tablas de metadatos porque
-está configurado con `spring.batch.jdbc.initialize-schema: always`.
+crea las tablas de negocio del Batch. Spring Batch crea sus tablas de metadatos porque
+está configurado con `spring.batch.jdbc.initialize-schema: always`. Los core services
+usan `spring.jpa.hibernate.ddl-auto: update`, por lo que JPA crea/actualiza sus tablas al arrancar.
 
-Configuración local por defecto:
+Credenciales por defecto (sobrescribibles con variables de entorno):
 
-```text
-URL:      jdbc:mysql://localhost:3306/banco_xyz_batch?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-Usuario:  root
-Password: admin
-```
-
-Se pueden sobrescribir `DB_URL`, `DB_USERNAME` y `DB_PASSWORD`.
+| Variable | Valor por defecto |
+|---|---|
+| `DB_URL` | `jdbc:mysql://localhost:3306/<base>?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true` |
+| `DB_USERNAME` | `root` |
+| `DB_PASSWORD` | `admin` |
 
 ### 4.3 Compilar todos los proyectos
 
@@ -150,7 +166,7 @@ Repetir el comando cambiando el directorio por cada proyecto. Los artefactos
 
 ### 4.4 Orden recomendado de arranque
 
-1. MySQL, PostgreSQL, Kafka y Zookeeper.
+1. MySQL, Kafka y Zookeeper.
 2. `01-config-server`.
 3. `02-eureka-server`.
 4. `03-auth-server`.
@@ -369,7 +385,6 @@ resuelven por nombre de servicio:
 - `config-server:8888`
 - `eureka-server:8761`
 - `auth-server:9000`
-- `postgres:5432`
 - `mysql:3306`
 - `kafka:29092`
 
@@ -384,8 +399,9 @@ por ejemplo una base MySQL local externa al Compose:
 DB_URL=jdbc:mysql://host.docker.internal:3306/banco_xyz_batch
 ```
 
-En la configuración entregada, Batch usa el contenedor `mysql` y los core usan
-el contenedor `postgres`, por lo que no necesitan `host.docker.internal`.
+En la configuración entregada, todos los servicios (core + batch) usan el mismo
+contenedor `mysql`, cada uno apuntando a su propia base de datos lógica, por lo
+que no necesitan `host.docker.internal`.
 
 Para detener y eliminar contenedores sin borrar volúmenes:
 
@@ -447,22 +463,4 @@ medir con JMeter o k6: solicitudes por segundo, p95/p99, tasa de errores,
 tiempo de recuperación del Circuit Breaker y duración de cada Job con el
 volumen real de archivos.
 
-## 7. Historial de commits de esta evolución
 
-Los cambios principales quedaron registrados en commits separados:
-
-```text
-de50bdb fix(channels): minimize ATM responses and finalize MySQL URL
-abd4408 feat(infra): add full Banco XYZ compose orchestration
-f311c27 feat(batch): add explicit financial database schema
-2abfe9f feat(bff): propagate JWT through load-balanced core calls
-e842ad2 chore(kafka): declare topic and serializer configuration
-3ee1fa7 feat(security): expose authenticated client identity from JWT
-3926b6d feat(api): standardize errors and complete response DTOs
-82e3f6e feat(kafka): add versioned events with idempotent consumers
-9900c47 feat(resilience): add bounded retries and payment compensation
-e78c7d2 feat(batch): implement legacy financial migration jobs
-```
-
-Al momento de generar este documento, el árbol de trabajo estaba limpio y no
-había cambios pendientes de registrar.
